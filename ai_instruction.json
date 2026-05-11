@@ -49,7 +49,20 @@
       "endpoints": {
         "GET /api/network/connections": "Dumps TCP/UDP connections (netstat). Optional query '?pid=1234'."
       }
+    },
+    {
+      "name": "api_chrome",
+      "endpoints": {
+        "GET /api/chrome/tabs": "Retrieves all open Chrome tabs via CDP. Chrome must be launched with --remote-debugging-port=9222.",
+        "POST /api/chrome/evaluate": "Evaluates JS in a specific Chrome tab. Requires {'tab_id': str, 'js_code': str}. Needs websocket-client."
+      }
     }
   ],
-  "usage_instructions": "To interact with the host, construct HTTP requests using your `read_url_content` or `run_command` (via curl/Invoke-RestMethod) tools targeting these endpoints."
+  "mcp_server": {
+    "entry_point": "python mcp_server.py",
+    "transport": "stdio",
+    "tools_count": 12,
+    "note": "Standalone MCP server with same capabilities as REST API. Use as stdio MCP server in AI agent configs."
+  },
+  "usage_instructions": "To interact with the host, construct HTTP requests using your `read_url_content` or `run_command` (via curl/Invoke-RestMethod) tools targeting these endpoints. Alternatively, configure mcp_server.py as an MCP stdio server."
 }
