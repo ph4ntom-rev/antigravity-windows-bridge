@@ -9,6 +9,7 @@ import api_memory
 import api_input
 import api_network
 import api_chrome
+import api_chrome_ext
 from server import start_server
 
 if __name__ == "__main__":
