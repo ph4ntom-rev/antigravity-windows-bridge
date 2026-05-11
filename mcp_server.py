@@ -134,5 +134,49 @@ def show_messagebox(title: str, message: str) -> str:
     ctypes.windll.user32.MessageBoxW(0, message, title, 0)
     return "Success"
 
+# --- CHROME AUTOMATION ---
+
+@mcp.tool()
+def get_chrome_tabs() -> dict:
+    """Retrieve all open Chrome tabs via CDP. Chrome must be launched with --remote-debugging-port=9222"""
+    import urllib.request, urllib.error, json
+    try:
+        req_obj = urllib.request.Request("http://127.0.0.1:9222/json")
+        with urllib.request.urlopen(req_obj, timeout=2) as response:
+            tabs = json.loads(response.read().decode())
+            return {"tabs": tabs, "count": len(tabs)}
+    except urllib.error.URLError:
+        return {"error": "Cannot connect to Chrome. Is it running with --remote-debugging-port=9222 ?"}
+
+@mcp.tool()
+def evaluate_chrome_js(tab_id: str, js_code: str = "document.body.innerText") -> dict:
+    """Evaluate JS in a specific tab and return the text/result."""
+    import urllib.request, urllib.error, json
+    try:
+        import websocket
+    except ImportError:
+        return {"error": "websocket-client library is not installed."}
+        
+    try:
+        req_obj = urllib.request.Request("http://127.0.0.1:9222/json")
+        with urllib.request.urlopen(req_obj, timeout=2) as response:
+            tabs = json.loads(response.read().decode())
+    except urllib.error.URLError:
+        return {"error": "Cannot connect to Chrome debug port."}
+        
+    ws_url = next((t.get("webSocketDebuggerUrl") for t in tabs if t.get("id") == tab_id), None)
+    if not ws_url:
+        return {"error": f"Tab {tab_id} not found."}
+        
+    try:
+        ws = websocket.create_connection(ws_url, timeout=5)
+        cmd = {"id": 1, "method": "Runtime.evaluate", "params": {"expression": js_code, "returnByValue": True}}
+        ws.send(json.dumps(cmd))
+        result = json.loads(ws.recv())
+        ws.close()
+        return result
+    except Exception as e:
+        return {"error": str(e)}
+
 if __name__ == "__main__":
     mcp.run()
