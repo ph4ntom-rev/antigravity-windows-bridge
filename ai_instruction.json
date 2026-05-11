@@ -1,0 +1,55 @@
+{
+  "bridge_name": "Antigravity Windows Bridge",
+  "version": "1.0",
+  "description": "A powerful local HTTP bridge granting AI agents (like Antigravity) advanced system-level capabilities on a Windows host.",
+  "endpoint_base": "http://127.0.0.1:13371",
+  "modules": [
+    {
+      "name": "api_system",
+      "endpoints": {
+        "GET /api/system/info": "Returns OS, architecture, CPU count, memory, and disk usage.",
+        "GET /api/system/processes": "Returns a list of all running processes with PID, memory, and CPU metrics.",
+        "POST /api/system/terminate": "Terminates a process. Requires {'pid': int}.",
+        "GET /api/system/wmi_query": "Executes a raw WMI query. Example query: '?query=SELECT * FROM Win32_VideoController'."
+      }
+    },
+    {
+      "name": "api_fs",
+      "endpoints": {
+        "POST /api/fs/read_registry": "Reads registry. Requires {'hive': 'HKLM', 'sub_key': '...', 'value_name': '...'}.",
+        "POST /api/fs/write_registry": "Writes registry. Requires {'hive': '...', 'sub_key': '...', 'value_name': '...', 'value': '...'}.",
+        "POST /api/system/exec": "DANGEROUS: Executes raw Python script in the bridge process. Returns stdout/stderr. Requires {'script': 'python code'}."
+      }
+    },
+    {
+      "name": "api_ui",
+      "endpoints": {
+        "GET /api/ui/screenshot": "Takes a screenshot and returns it as base64 jpeg.",
+        "GET /api/ui/windows": "Enumerates all visible windows (HWND, title, rect).",
+        "POST /api/ui/window/focus": "Brings window to foreground. Requires {'hwnd': int}.",
+        "POST /api/ui/messagebox": "Shows Win32 message box. Requires {'title': '...', 'message': '...'}."
+      }
+    },
+    {
+      "name": "api_memory",
+      "endpoints": {
+        "POST /api/memory/read": "Reads process memory. Requires {'pid': int, 'address': int/hex_str, 'size': int}. Returns base64 and hex data.",
+        "POST /api/memory/write": "Writes process memory. Requires {'pid': int, 'address': int/hex_str, 'data_hex': str}."
+      }
+    },
+    {
+      "name": "api_input",
+      "endpoints": {
+        "POST /api/input/keyboard": "Synthesizes keyboard input. Requires {'vk_code': int/hex_str, 'action': 'press'|'down'|'up'}.",
+        "POST /api/input/mouse_move": "Moves cursor. Requires {'x': int, 'y': int}."
+      }
+    },
+    {
+      "name": "api_network",
+      "endpoints": {
+        "GET /api/network/connections": "Dumps TCP/UDP connections (netstat). Optional query '?pid=1234'."
+      }
+    }
+  ],
+  "usage_instructions": "To interact with the host, construct HTTP requests using your `read_url_content` or `run_command` (via curl/Invoke-RestMethod) tools targeting these endpoints."
+}
