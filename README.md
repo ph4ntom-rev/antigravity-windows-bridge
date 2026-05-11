@@ -2,6 +2,9 @@
 
 A powerful local HTTP bridge granting AI agents (like Antigravity) advanced system-level capabilities on a Windows host via REST API.
 
+## About
+Designed for seamless integration between autonomous LLM agents and the Windows OS. This bridge acts as a low-level effector, allowing AI assistants to execute shellcode, manipulate process memory, synthesize hardware inputs, and interact with the Windows Kernel/Registry without relying on external bloatware. 
+
 ## Features
 
 - **System API**: Process enumeration, termination, hardware info, and raw WMI queries.
