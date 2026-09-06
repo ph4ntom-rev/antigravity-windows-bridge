@@ -21,6 +21,9 @@ class ExtensionBridge:
         cmd = {"id": cmd_id, "type": cmd_type, **params}
 
         with self._lock:
+            if len(self._events) >= 64:
+                raise APIError("Extension queue is full", 503)
+            cmd["deadline_ms"] = int((time.time() + timeout) * 1000)
             self._queue.append(cmd)
             self._events[cmd_id] = event
 
@@ -35,7 +38,8 @@ class ExtensionBridge:
             with self._lock:
                 self._queue = [c for c in self._queue if c["id"] != cmd_id]
                 self._events.pop(cmd_id, None)
-            raise APIError("Chrome extension timeout - is it installed and active?", 504)
+                self._results.pop(cmd_id, None)
+            raise APIError("Extension result timed out; delivery may be uncertain. Do not retry mutations automatically.", 504)
 
     def poll(self):
         """Called by the extension to pick up a pending command."""
@@ -48,10 +52,11 @@ class ExtensionBridge:
     def resolve(self, cmd_id, result):
         """Called by the extension to deliver a command result."""
         with self._lock:
-            self._results[cmd_id] = result
             event = self._events.get(cmd_id)
-            if event:
-                event.set()
+            if event is None:
+                raise APIError("Command expired or unknown", 409)
+            self._results[cmd_id] = result
+            event.set()
 
     @property
     def is_connected(self):
@@ -64,13 +69,13 @@ ext = ExtensionBridge()
 
 # --- Extension polling endpoints (called BY the extension) ---
 
-@router.get(r"/api/ext/poll")
+@router.get(r"/api/ext/poll", capability="browser")
 def ext_poll(req, **kwargs):
     cmd = ext.poll()
     return {"command": cmd}
 
 
-@router.post(r"/api/ext/result")
+@router.post(r"/api/ext/result", capability="browser")
 def ext_result(req, **kwargs):
     cmd_id = req.get("id")
     result = req.get("result")
@@ -80,19 +85,19 @@ def ext_result(req, **kwargs):
     return {"success": True}
 
 
-@router.get(r"/api/ext/status")
+@router.get(r"/api/ext/status", capability="browser")
 def ext_status(req, **kwargs):
     return {"connected": ext.is_connected}
 
 
 # --- High-level Chrome endpoints (called BY the user/AI) ---
 
-@router.get(r"/api/ext/tabs")
+@router.get(r"/api/ext/tabs", capability="browser")
 def ext_list_tabs(req, **kwargs):
     return ext.submit("list_tabs")
 
 
-@router.post(r"/api/ext/eval")
+@router.post(r"/api/ext/eval", capability="browser")
 def ext_eval_js(req, **kwargs):
     tab_id = req.get("tab_id")
     js_code = req.get("js_code", "document.title")
@@ -101,7 +106,7 @@ def ext_eval_js(req, **kwargs):
     return ext.submit("eval_js", tab_id=int(tab_id), js_code=js_code)
 
 
-@router.post(r"/api/ext/navigate")
+@router.post(r"/api/ext/navigate", capability="browser")
 def ext_navigate(req, **kwargs):
     tab_id = req.get("tab_id")
     url = req.get("url")
@@ -110,18 +115,18 @@ def ext_navigate(req, **kwargs):
     return ext.submit("navigate", tab_id=int(tab_id), url=url)
 
 
-@router.post(r"/api/ext/capture")
+@router.post(r"/api/ext/capture", capability="browser")
 def ext_capture(req, **kwargs):
     return ext.submit("capture_tab", timeout=15)
 
 
-@router.post(r"/api/ext/create_tab")
+@router.post(r"/api/ext/create_tab", capability="browser")
 def ext_create_tab(req, **kwargs):
     url = req.get("url", "about:blank")
     return ext.submit("create_tab", url=url)
 
 
-@router.post(r"/api/ext/close_tab")
+@router.post(r"/api/ext/close_tab", capability="browser")
 def ext_close_tab(req, **kwargs):
     tab_id = req.get("tab_id")
     if not tab_id:

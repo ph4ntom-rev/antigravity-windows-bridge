@@ -3,7 +3,7 @@ import winreg
 import ctypes
 from server import router, APIError
 
-@router.post(r"/api/fs/read_registry")
+@router.post(r"/api/fs/read_registry", capability="registry")
 def read_registry(req, **kwargs):
     hive_name = req.get("hive")
     sub_key = req.get("sub_key")
@@ -27,7 +27,7 @@ def read_registry(req, **kwargs):
     except Exception as e:
         raise APIError(str(e))
 
-@router.post(r"/api/fs/write_registry")
+@router.post(r"/api/fs/write_registry", capability="registry_write")
 def write_registry(req, **kwargs):
     hive_name = req.get("hive")
     sub_key = req.get("sub_key")
@@ -52,32 +52,7 @@ def write_registry(req, **kwargs):
     except Exception as e:
         raise APIError(str(e))
 
-@router.post(r"/api/system/exec")
+@router.post(r"/api/system/exec", capability="exec")
 def exec_script(req, **kwargs):
-    # DANGEROUS: Allows execution of python code directly in the host process
-    # This is similar to the IDA Bridge RCE endpoint.
-    script = req.get("script", "")
-    import io
-    import sys
-    import traceback
-    
-    out, err = io.StringIO(), io.StringIO()
-    old_out, old_err = sys.stdout, sys.stderr
-    sys.stdout, sys.stderr = out, err
-    
-    env = {"result": {}}
-    success, err_msg = True, ""
-    try:
-        exec(script, globals(), env)
-    except Exception:
-        success, err_msg = False, traceback.format_exc()
-    finally:
-        sys.stdout, sys.stderr = old_out, old_err
-        
-    return {
-        "success": success, 
-        "stdout": out.getvalue(), 
-        "stderr": err.getvalue(), 
-        "error": err_msg, 
-        "result": env.get("result", {})
-    }
+    from script_runner import execute_script
+    return execute_script(req.get("script", ""))

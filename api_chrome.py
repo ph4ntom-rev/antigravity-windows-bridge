@@ -10,7 +10,7 @@ except ImportError:
 
 CHROME_DEBUG_URL = "http://127.0.0.1:9222"
 
-@router.get(r"/api/chrome/tabs")
+@router.get(r"/api/chrome/tabs", capability="browser")
 def get_chrome_tabs(req, **kwargs):
     """Retrieve all open Chrome tabs via CDP."""
     try:
@@ -21,7 +21,7 @@ def get_chrome_tabs(req, **kwargs):
     except urllib.error.URLError:
         raise APIError("Cannot connect to Chrome. Is it running with --remote-debugging-port=9222 ?", 503)
 
-@router.post(r"/api/chrome/evaluate")
+@router.post(r"/api/chrome/evaluate", capability="browser")
 def evaluate_chrome_js(req, **kwargs):
     """Evaluate JS in a specific tab. Requires websocket-client."""
     if not HAS_WS:

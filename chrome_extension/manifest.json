@@ -1,10 +1,18 @@
 {
   "manifest_version": 3,
   "name": "Antigravity Bridge",
-  "version": "1.0",
-  "description": "Connects Chrome to Antigravity Windows Bridge — full tab control without --remote-debugging-port",
-  "permissions": ["tabs", "scripting", "activeTab", "alarms"],
-  "host_permissions": ["<all_urls>"],
+  "version": "1.1.0",
+  "description": "Connects Chrome to Antigravity Windows Bridge \u2014 full tab control without --remote-debugging-port",
+  "permissions": [
+    "tabs",
+    "scripting",
+    "activeTab",
+    "alarms",
+    "storage"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "background": {
     "service_worker": "background.js"
   },

@@ -6,22 +6,28 @@ let connected = false;
 let commandsExecuted = 0;
 let lastError = null;
 let polling = false;
+let token = '';
+chrome.storage.local.setAccessLevel({ accessLevel: 'TRUSTED_CONTEXTS' });
+chrome.storage.local.get('bridgeToken').then(v => { token = v.bridgeToken || ''; });
+chrome.storage.onChanged.addListener(changes => { if (changes.bridgeToken) token = changes.bridgeToken.newValue || ''; });
 
 function sleep(ms) {
     return new Promise(r => setTimeout(r, ms));
 }
 
 async function postResult(cmdId, result) {
-    await fetch(`${BRIDGE}/api/ext/result`, {
+    const response = await fetch(`${BRIDGE}/api/ext/result`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ id: cmdId, result }),
         signal: AbortSignal.timeout(5000)
     });
+    if (!response.ok) throw new Error(`Result rejected (${response.status}); inspect state before retrying`);
 }
 
 async function executeCommand(cmd) {
     try {
+        if (!Number.isFinite(cmd.deadline_ms) || Date.now() >= cmd.deadline_ms) throw new Error("Command expired before execution");
         switch (cmd.type) {
             case 'list_tabs': {
                 const tabs = await chrome.tabs.query({});
@@ -83,9 +89,12 @@ async function startPolling() {
 
     while (polling) {
         try {
+            if (!token) throw new Error('Pair this extension with its extension-token file');
             const resp = await fetch(`${BRIDGE}/api/ext/poll`, {
+                headers: { Authorization: `Bearer ${token}` },
                 signal: AbortSignal.timeout(2000)
             });
+            if (!resp.ok) throw new Error(`Bridge rejected connection (${resp.status})`);
             const data = await resp.json();
             connected = true;
             lastError = null;

@@ -1,16 +1,6 @@
-import sys
-import os
-
-# Import endpoints before starting
-import api_system
-import api_fs
-import api_ui
-import api_memory
-import api_input
-import api_network
-import api_chrome
-import api_chrome_ext
+from runtime import load_endpoints
 from server import start_server
 
 if __name__ == "__main__":
+    load_endpoints()
     start_server()
