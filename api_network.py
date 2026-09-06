@@ -2,7 +2,7 @@ import psutil
 from server import router, APIError
 import socket
 
-@router.get(r"/api/network/connections")
+@router.get(r"/api/network/connections", capability="read")
 def get_connections(req, **kwargs):
     pid = req.get("pid")
     results = []

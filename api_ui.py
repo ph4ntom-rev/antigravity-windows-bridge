@@ -6,7 +6,7 @@ from server import router, APIError
 import win32gui
 import win32con
 
-@router.get(r"/api/ui/screenshot")
+@router.get(r"/api/ui/screenshot", capability="screen")
 def get_screenshot(req, **kwargs):
     try:
         img = ImageGrab.grab()
@@ -17,7 +17,7 @@ def get_screenshot(req, **kwargs):
     except Exception as e:
         raise APIError(str(e))
 
-@router.get(r"/api/ui/windows")
+@router.get(r"/api/ui/windows", capability="read")
 def get_windows(req, **kwargs):
     windows = []
     def enum_cb(hwnd, results):
@@ -37,7 +37,7 @@ def get_windows(req, **kwargs):
     win32gui.EnumWindows(enum_cb, windows)
     return {"windows": windows, "count": len(windows)}
 
-@router.post(r"/api/ui/window/focus")
+@router.post(r"/api/ui/window/focus", capability="ui")
 def focus_window(req, **kwargs):
     hwnd = req.get("hwnd")
     if not hwnd:
@@ -49,7 +49,7 @@ def focus_window(req, **kwargs):
     except Exception as e:
         raise APIError(str(e))
 
-@router.post(r"/api/ui/messagebox")
+@router.post(r"/api/ui/messagebox", capability="ui")
 def show_messagebox(req, **kwargs):
     title = req.get("title", "Antigravity Bridge")
     message = req.get("message", "")

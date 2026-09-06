@@ -5,10 +5,8 @@ import win32api
 import win32con
 from server import router, APIError
 
-# Initialize WMI connection
-c = wmi.WMI()
 
-@router.get(r"/api/system/info")
+@router.get(r"/api/system/info", capability="read")
 def get_sys_info(req, **kwargs):
     return {
         "os": platform.platform(),
@@ -23,7 +21,7 @@ def get_sys_info(req, **kwargs):
         }
     }
 
-@router.get(r"/api/system/processes")
+@router.get(r"/api/system/processes", capability="read")
 def list_processes(req, **kwargs):
     processes = []
     for proc in psutil.process_iter(['pid', 'name', 'username', 'cpu_percent', 'memory_info']):
@@ -33,7 +31,7 @@ def list_processes(req, **kwargs):
             pass
     return {"processes": processes, "count": len(processes)}
 
-@router.post(r"/api/system/terminate")
+@router.post(r"/api/system/terminate", capability="terminate")
 def terminate_process(req, **kwargs):
     pid = req.get("pid")
     if not pid:
@@ -45,14 +43,16 @@ def terminate_process(req, **kwargs):
     except Exception as e:
         raise APIError(str(e))
 
-@router.get(r"/api/system/wmi_query")
+@router.get(r"/api/system/wmi_query", capability="wmi")
 def wmi_query(req, **kwargs):
     query = req.get("query", [""])[0]
     if not query:
         raise APIError("Query string required")
+    import pythoncom
+    pythoncom.CoInitialize()
     try:
         results = []
-        for item in c.query(query):
+        for item in wmi.WMI().query(query):
             properties = {}
             for prop in item.properties:
                 properties[prop] = getattr(item, prop)
@@ -60,3 +60,5 @@ def wmi_query(req, **kwargs):
         return {"results": results}
     except Exception as e:
         raise APIError(str(e))
+    finally:
+        pythoncom.CoUninitialize()
